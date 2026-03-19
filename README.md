@@ -1,4 +1,4 @@
-# 🧧 WP PIX QR Code
+# WP PIX QR Code
 
 [![WordPress Version](https://img.shields.io/badge/WordPress-5.0%2B-0073AA?style=flat-square&logo=wordpress)](https://wordpress.org/)
 [![PHP Version](https://img.shields.io/badge/PHP-7.4%2B-777BB4?style=flat-square&logo=php)](https://www.php.net/)
@@ -7,7 +7,7 @@
 
 **Plugin leve e eficiente para gerar QR codes PIX no WordPress com shortcode e bloco Gutenberg.**
 
-O **WP PIX QR Code** é um plugin extremamente leve e performático que permite gerar QR codes PIX válidos diretamente no seu site WordPress. Com uma interface simples e intuitiva, você pode inserir QR codes PIX em qualquer página ou post usando shortcodes ou o editor de blocos Gutenberg.
+O **WP PIX QR Code** é um plugin extremamente leve e performático que permite gerar QR codes PIX válidos diretamente no seu site WordPress. Você pode inserir QR codes PIX em qualquer página ou post usando shortcodes ou o editor de blocos Gutenberg.
 
 ---
 
@@ -81,14 +81,6 @@ Para usuários avançados ou para uso em temas/widgets clássicos:
 
 > **O que acontece se eu não informar o valor?**
 > O QR code será gerado para "valor livre", permitindo que o pagador digite o valor no app.
-
----
-
-## 📸 Screenshots
-
-1. **Editor Gutenberg**: Interface intuitiva com painel de configurações lateral.
-2. **Preview**: Visualize o QR code exatamente como ele aparecerá no site.
-3. **Frontend**: Exibição limpa e rápida do QR code para seus clientes.
 
 ---
 
