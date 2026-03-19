@@ -16,6 +16,7 @@
 
             const params = new URLSearchParams({
                 action: 'wp_pix_generate_qr',
+                nonce: wpPixAjax.nonce,
                 chave: chave,
                 valor: valor || '0',
                 identificador: identificador || '',

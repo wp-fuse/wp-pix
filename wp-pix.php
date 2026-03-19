@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP PIX QR Code
  * Description: Plugin para gerar QR codes PIX com shortcode e bloco Gutenberg
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: wpfuse
  * Text Domain: wpfuse
  */
@@ -44,11 +44,17 @@ class WP_PIX_QRCode {
             array('wp-blocks', 'wp-element', 'wp-components', 'wp-block-editor'), '1.0.0'
         );
         wp_localize_script('wp-pix-block', 'wpPixAjax', array(
-            'ajaxurl' => admin_url('admin-ajax.php')
+            'ajaxurl' => admin_url('admin-ajax.php'),
+            'nonce'   => wp_create_nonce('wp_pix_generate_qr')
         ));
     }
     
     public function ajax_generate_qr() {
+        // Verifica nonce para segurança
+        if (!isset($_GET['nonce']) || !wp_verify_nonce($_GET['nonce'], 'wp_pix_generate_qr')) {
+            wp_die('Requisição inválida', 403);
+        }
+
         $chave = sanitize_text_field($_GET['chave'] ?? '');
         $valor = sanitize_text_field($_GET['valor'] ?? '0');
         $identificador = sanitize_text_field($_GET['identificador'] ?? '');
@@ -58,8 +64,8 @@ class WP_PIX_QRCode {
             wp_die('Chave PIX é obrigatória');
         }
         
-        $qr_url = $this->geraQRCodePix($chave, $valor, '', $identificador, $size);
-        echo $qr_url;
+        $qr_url = $this->geraQRCodePix($chave, $valor, $identificador, $size);
+        echo esc_url($qr_url);
         wp_die();
     }
     
@@ -108,65 +114,58 @@ class WP_PIX_QRCode {
     }
 
     private function montaPix($px){
-        $ret="";
+        $ret = '';
         foreach ($px as $k => $v) {
             if (!is_array($v)) {
-                if ($k == 54) { $v = number_format($v,2,'.',''); } // Formata o campo valor com 2 digitos.
+                // Formata o campo valor com 2 dígitos decimais
+                if ($k == 54) { $v = number_format($v, 2, '.', ''); }
                 else { $v = $this->remove_char_especiais($v); }
-                $ret .= $this->c2($k).$this->cpm($v).$v;
+                $ret .= $this->c2($k) . $this->cpm($v) . $v;
             }
             else {
                 $conteudo = $this->montaPix($v);
-                $ret .= $this->c2($k).$this->cpm($conteudo).$conteudo;
+                $ret .= $this->c2($k) . $this->cpm($conteudo) . $conteudo;
             }
         }
         return $ret;
     }
 
+    // Remove caracteres especiais (não-alfanuméricos e espaços)
     private function remove_char_especiais($txt){
-        return preg_replace('/\W /','', $this->remove_acentos($txt));
+        return preg_replace('/[\W ]/', '', $this->remove_acentos($txt));
     }
 
+    // Remove acentos convertendo para ASCII
     private function remove_acentos($texto){
-        $search	 = explode(",","à,á,â,ä,æ,ã,å,ā,ç,ć,č,è,é,ê,ë,ē,ė,ę,î,ï,í,ī,į,ì,ł,ñ,ń,ô,ö,ò,ó,œ,ø,ō,õ,ß,ś,š,û,ü,ù,ú,ū,ÿ,ž,ź,ż,À,Á,Â,Ä,Æ,Ã,Å,Ā,Ç,Ć,Č,È,É,Ê,Ë,Ē,Ė,Ę,Î,Ï,Í,Ī,Į,Ì,Ł,Ñ,Ń,Ô,Ö,Ò,Ó,Œ,Ø,Ō,Õ,Ś,Š,Û,Ü,Ù,Ú,Ū,Ÿ,Ž,Ź,Ż");
-        $replace = explode(",","a,a,a,a,a,a,a,a,c,c,c,e,e,e,e,e,e,e,i,i,i,i,i,i,l,n,n,o,o,o,o,o,o,o,o,s,s,s,u,u,u,u,u,y,z,z,z,A,A,A,A,A,A,A,A,C,C,C,E,E,E,E,E,E,E,I,I,I,I,I,I,L,N,N,O,O,O,O,O,O,O,O,S,S,U,U,U,U,U,Y,Z,Z,Z");
-        return $this->remove_emoji(str_replace($search, $replace, $texto));
+        $transliterated = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $texto);
+        if ($transliterated === false) {
+            return $texto;
+        }
+        // Remove caracteres de decoração gerados pelo TRANSLIT (ex: ^, ~, `)
+        return preg_replace('/[^\x20-\x7E]/', '', $transliterated);
     }
 
-    private function remove_emoji($string){
-        return preg_replace('%(?:
-        \xF0[\x90-\xBF][\x80-\xBF]{2}		# planes 1-3
-        | [\xF1-\xF3][\x80-\xBF]{3}			# planes 4-15
-        | \xF4[\x80-\x8F][\x80-\xBF]{2}		# plane 16
-        )%xs', '  ', $string);      
-    }
-
-    // Retorna a quantidade de caracteres do texto $tx com dois dígitos
+    // Retorna a quantidade de caracteres do texto com dois dígitos
     private function cpm($tx){
         if (strlen($tx) > 99) {
-            die( "Tamanho máximo deve ser 99, inválido: $tx possui " . strlen($tx) . " caracteres." );
+            return $this->c2(99);
         }
         return $this->c2(strlen($tx));
     }
 
-    // Trata os casos onde o tamanho do campo for < 10 acrescentando o dígito 0 a esquerda
+    // Preenche com zero à esquerda para garantir dois dígitos
     private function c2($input){
-        return str_pad($input, 2, "0", STR_PAD_LEFT);
+        return str_pad($input, 2, '0', STR_PAD_LEFT);
     }
 
     // Calcula o CRC-16/CCITT-FALSE
     private function crcChecksum($str) {
-        
-        $charCodeAt = function($str, $i) {
-            return ord(substr($str, $i, 1));
-        };
-        
         $crc = 0xFFFF;
         $strlen = strlen($str);
-        for($c = 0; $c < $strlen; $c++) {
-            $crc ^= $charCodeAt($str, $c) << 8;
-            for($i = 0; $i < 8; $i++) {
-                if($crc & 0x8000) {
+        for ($c = 0; $c < $strlen; $c++) {
+            $crc ^= ord($str[$c]) << 8;
+            for ($i = 0; $i < 8; $i++) {
+                if ($crc & 0x8000) {
                     $crc = ($crc << 1) ^ 0x1021;
                 } else {
                     $crc = $crc << 1;
@@ -174,41 +173,36 @@ class WP_PIX_QRCode {
             }
         }
         
-        $hex = $crc & 0xFFFF;
-        $hex = dechex($hex);
-        $hex = strtoupper($hex);
-        $hex = str_pad($hex, 4, '0', STR_PAD_LEFT);
-        return $hex;
+        return str_pad(strtoupper(dechex($crc & 0xFFFF)), 4, '0', STR_PAD_LEFT);
     }
 
-    public function geraQRCodePix( $chave, $valor, $identificador, $size = '200' ){
+    public function geraQRCodePix($chave, $valor, $identificador = '', $size = '200'){
         
-        if (!empty($valor) && $valor !== '0') {
-            $valor = str_replace(',', '.', $valor);
-        } else {
-            $valor = '0';
-        }
-        
-        $px[00] = "01";
-        $px[26][00] = "BR.GOV.BCB.PIX";
+        $px[00] = '01';
+        $px[26][00] = 'BR.GOV.BCB.PIX';
         $px[26][01] = $chave;
-        $px[52] = "0000";
-        $px[53] = "986";
-        $px[54] = $valor;
-        $px[58] = "BR";
-        $px[62][05] = "***";
+        $px[52] = '0000';
+        $px[53] = '986';
+
+        // Inclui campo de valor apenas quando informado (omite para valor livre)
+        if (!empty($valor) && $valor !== '0') {
+            $px[54] = str_replace(',', '.', $valor);
+        }
+
+        $px[58] = 'BR';
+
+        // Usa o identificador fornecido ou fallback padrão
+        $px[62][05] = !empty($identificador) ? $identificador : '***';
         
         $pix = $this->montaPix($px);
         
         // Adiciona o campo do CRC no fim da linha do pix
-        $pix .= "6304";
+        $pix .= '6304';
         
         // Calcula o checksum CRC16 e acrescenta ao final
         $pix .= $this->crcChecksum($pix);
         
-        $data = "http://quickchart.io/chart?chs=".$size."&cht=qr&chld=l|1&chl=" . urlencode($pix);
-        
-        return $data;
+        return 'https://quickchart.io/chart?chs=' . $size . '&cht=qr&chld=l|1&chl=' . urlencode($pix);
     }
 }
 
