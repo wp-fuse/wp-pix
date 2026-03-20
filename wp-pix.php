@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: WP PIX QR Code
- * Description: Plugin para gerar QR codes PIX com shortcode e bloco Gutenberg
+ * Description: Plugin para gerar QR codes PIX com shortcode e bloco Gutenberg.
  * Version: 1.0.1
  * Author: wpfuse
  * Text Domain: wpfuse
