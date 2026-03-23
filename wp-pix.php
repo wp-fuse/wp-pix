@@ -4,6 +4,8 @@
  * Description: Plugin para gerar QR codes PIX com shortcode e bloco Gutenberg.
  * Version: 1.0.1
  * Author: wpfuse
+ * Author URI: https://wpfuse.com
+ * GitHub Plugin URI: https://github.com/wp-fuse/wp-pix
  * Text Domain: wpfuse
  */
 
